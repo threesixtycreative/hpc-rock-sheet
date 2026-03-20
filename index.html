@@ -624,7 +624,7 @@ function renderView() {
       s += '<span style="font-size:18px;color:var(--' + cc + '-rock);font-style:italic;">No data</span>';
     }
     s += '</div></div>';
-    if (rock.notes) s += '<div class="rock-notes">' + esc(rock.notes) + '</div>';
+    if (rock.notes) s += '<div class="rock-notes" style="color:var(--' + cc + '-rock);">' + esc(rock.notes) + '</div>';
     s += '</div>';
     return s;
   }
