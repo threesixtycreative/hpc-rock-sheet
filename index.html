@@ -621,7 +621,7 @@ function renderView() {
       s += '<span class="trait ' + (rock.curl.toLowerCase().includes('straight')?'straight':'cutter') + '">' + esc(rock.curl) + '</span>';
     }
     if (!rock.speed && !rock.curl) {
-      s += '<span style="font-size:18px;color:var(--text-muted);font-style:italic;">No data</span>';
+      s += '<span style="font-size:18px;color:var(--' + cc + '-rock);font-style:italic;">No data</span>';
     }
     s += '</div></div>';
     if (rock.notes) s += '<div class="rock-notes">' + esc(rock.notes) + '</div>';
