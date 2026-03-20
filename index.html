@@ -1,2 +1,827 @@
-# hpc-rock-sheet
-High Park Club — curling rock tracking app
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>High Park Club — Rock Sheet</title>
+
+<!-- ── Web App / Add to Home Screen ── -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rock Sheet">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0c1117">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%230c1117'/><circle cx='90' cy='78' r='42' fill='none' stroke='%233b82f6' stroke-width='8'/><circle cx='90' cy='78' r='12' fill='%233b82f6'/><text x='90' y='156' text-anchor='middle' font-family='sans-serif' font-weight='800' font-size='30' fill='%23e8ecf1'>HPC</text></svg>">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c1117;
+    --surface: #161d27;
+    --surface-raised: #1c2533;
+    --border: #2a3544;
+    --border-focus: #3b82f6;
+    --text: #e8ecf1;
+    --text-muted: #8a96a6;
+    --blue-rock: #3b82f6;
+    --blue-bg: rgba(59,130,246,0.1);
+    --blue-border: rgba(59,130,246,0.3);
+    --yellow-rock: #eab308;
+    --yellow-bg: rgba(234,179,8,0.1);
+    --yellow-border: rgba(234,179,8,0.3);
+    --fast: #34d399;
+    --slow: #fb923c;
+    --save-green: #22c55e;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .container {
+    max-width: 430px;
+    margin: 0 auto;
+    padding: 16px 14px 60px;
+    padding-top: calc(16px + env(safe-area-inset-top));
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+
+  /* ── Install Banner ── */
+  .install-banner {
+    background: var(--blue-bg);
+    border: 1px solid var(--blue-border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    display: none;
+  }
+  .install-banner strong {
+    color: var(--text);
+  }
+  .install-banner .dismiss-x {
+    float: right;
+    font-size: 22px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  /* ── Sheet Selector ── */
+  .sheet-selector {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+  .sheet-btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    width: 56px;
+    height: 52px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .sheet-btn.active {
+    background: var(--blue-rock);
+    border-color: var(--blue-rock);
+    color: #fff;
+  }
+  .sheet-btn.has-data {
+    border-color: var(--text-muted);
+    color: var(--text);
+  }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    padding: 8px 0 14px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 18px;
+  }
+  .club-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 30px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .sheet-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .updated {
+    font-size: 17px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* ── Mode Toggle ── */
+  .mode-toggle {
+    display: flex;
+    gap: 0;
+    margin-bottom: 18px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid var(--border);
+  }
+  .mode-btn {
+    flex: 1;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    padding: 12px 0;
+    border: none;
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .mode-btn.active {
+    background: var(--surface-raised);
+    color: var(--text);
+  }
+  .mode-btn.active.edit-active {
+    background: rgba(59,130,246,0.2);
+    color: var(--blue-rock);
+  }
+
+  /* ── Team Color Headers ── */
+  .color-header {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 26px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  .color-header.blue {
+    background: var(--blue-bg);
+    border: 2px solid var(--blue-border);
+    color: var(--blue-rock);
+  }
+  .color-header.yellow {
+    background: var(--yellow-bg);
+    border: 2px solid var(--yellow-border);
+    color: var(--yellow-rock);
+  }
+
+  /* ── Position Group ── */
+  .position-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 19px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    padding: 8px 4px 4px;
+  }
+
+  /* ── Rock Card (View Mode) ── */
+  .rock-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 14px 12px;
+    margin-bottom: 10px;
+  }
+  .rock-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .rock-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 36px;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .rock-num.blue {
+    background: var(--blue-bg);
+    border: 2px solid var(--blue-border);
+    color: var(--blue-rock);
+  }
+  .rock-num.yellow {
+    background: var(--yellow-bg);
+    border: 2px solid var(--yellow-border);
+    color: var(--yellow-rock);
+  }
+
+  .rock-traits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1;
+  }
+
+  .trait {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    padding: 5px 14px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+  .trait.fast { background: rgba(52,211,153,0.12); color: var(--fast); }
+  .trait.slow { background: rgba(251,146,60,0.12); color: var(--slow); }
+  .trait.straight { background: rgba(167,139,250,0.12); color: #a78bfa; }
+  .trait.cutter { background: rgba(244,114,182,0.12); color: #f472b6; }
+
+  .rock-notes {
+    font-size: 20px;
+    line-height: 1.4;
+    color: var(--text-muted);
+    padding-top: 4px;
+  }
+
+  /* ── Rock Card (Edit Mode) ── */
+  .rock-edit-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .rock-edit-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .rock-edit-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+  }
+  .field-row {
+    display: flex;
+    gap: 8px;
+  }
+  .field-row .field-group {
+    flex: 1;
+  }
+  .field-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .field-input {
+    width: 100%;
+    font-family: 'Barlow', sans-serif;
+    font-size: 17px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+  }
+  .field-input:focus {
+    border-color: var(--border-focus);
+  }
+  .field-input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.5;
+  }
+
+  /* ── Notes Section (View) ── */
+  .notes-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 10px;
+    margin-bottom: 22px;
+  }
+  .notes-section h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .notes-section ul {
+    list-style: none;
+    padding: 0;
+  }
+  .notes-section li {
+    font-size: 20px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .notes-section li:last-child { border-bottom: none; }
+  .notes-section li strong { color: var(--text); }
+
+  /* ── Notes Section (Edit) ── */
+  .notes-edit-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 10px;
+    margin-bottom: 14px;
+  }
+  .notes-edit-section h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+  .notes-edit-section .field-group {
+    margin-bottom: 10px;
+  }
+  .notes-edit-section .field-group:last-child {
+    margin-bottom: 0;
+  }
+
+  /* ── Save / Clear Buttons ── */
+  .save-bar {
+    position: sticky;
+    bottom: 0;
+    padding: 12px 0 16px;
+    background: linear-gradient(to top, var(--bg) 70%, transparent);
+  }
+  .save-btn {
+    width: 100%;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    background: var(--blue-rock);
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .save-btn:active {
+    transform: scale(0.97);
+  }
+  .save-btn.saved {
+    background: var(--save-green);
+  }
+  .clear-btn {
+    width: 100%;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    margin-top: 6px;
+    transition: all 0.15s;
+  }
+  .clear-btn:active {
+    background: rgba(239,68,68,0.15);
+    border-color: #ef4444;
+    color: #ef4444;
+  }
+
+  /* ── Sync Bar ── */
+  .sync-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .sync-btn {
+    flex: 1;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 8px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .sync-btn:active {
+    background: var(--surface-raised);
+    color: var(--text);
+  }
+  .sync-btn.done {
+    border-color: var(--save-green);
+    color: var(--save-green);
+  }
+  .sync-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 8px;
+    opacity: 0.6;
+  }
+  #importFile {
+    display: none;
+  }
+
+  .spacer { height: 22px; }
+
+  .empty-msg {
+    font-size: 20px;
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 30px 16px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Install banner — only shows in Safari, not when already installed -->
+  <div class="install-banner" id="installBanner">
+    <span class="dismiss-x" onclick="dismissBanner()">&times;</span>
+    <strong>Add to Home Screen</strong> for the best experience.<br>
+    Tap the <strong>Share</strong> button ( &#8593; ) below, then <strong>Add to Home Screen</strong>.
+  </div>
+
+  <div class="sheet-selector">
+    <button class="sheet-btn active" onclick="showSheet(1)">1</button>
+    <button class="sheet-btn" onclick="showSheet(2)">2</button>
+    <button class="sheet-btn" onclick="showSheet(3)">3</button>
+    <button class="sheet-btn" onclick="showSheet(4)">4</button>
+    <button class="sheet-btn" onclick="showSheet(5)">5</button>
+  </div>
+
+  <header>
+    <div class="club-name">High Park Club</div>
+    <div class="sheet-label" id="sheetLabel">Sheet 1</div>
+    <div class="updated" id="updatedDate">No data yet</div>
+  </header>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="viewBtn" onclick="setMode('view')">View</button>
+    <button class="mode-btn" id="editBtn" onclick="setMode('edit')">Edit</button>
+  </div>
+
+  <!-- Sync controls -->
+  <div class="sync-bar">
+    <button class="sync-btn" id="exportBtn" onclick="exportData()">Export</button>
+    <button class="sync-btn" id="importBtn" onclick="document.getElementById('importFile').click()">Import</button>
+    <input type="file" id="importFile" accept=".json" onchange="importData(event)">
+  </div>
+
+  <div id="sheetContent"></div>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'hpc_rockdata';
+
+function emptySheet() {
+  return { updated:'', blue:[], yellow:[], pairs:'', skipRocks:'', notes:'' };
+}
+
+function defaultData() {
+  return {1:emptySheet(),2:emptySheet(),3:emptySheet(),4:emptySheet(),5:emptySheet()};
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return defaultData();
+}
+
+function saveDataToStorage(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+let rockData = loadData();
+let currentSheet = 1;
+let currentMode = 'view';
+
+function sheetHasData(n) {
+  const d = rockData[n];
+  return d && (d.blue.length > 0 || d.yellow.length > 0);
+}
+
+function updateSheetBtnIndicators() {
+  document.querySelectorAll('.sheet-btn').forEach((b, i) => {
+    const n = i + 1;
+    b.classList.remove('has-data');
+    if (n !== currentSheet && sheetHasData(n)) b.classList.add('has-data');
+  });
+}
+
+function showSheet(n) {
+  currentSheet = n;
+  document.querySelectorAll('.sheet-btn').forEach((b, i) => {
+    b.classList.remove('active','has-data');
+    if (i === n - 1) b.classList.add('active');
+    else if (sheetHasData(i + 1)) b.classList.add('has-data');
+  });
+  document.getElementById('sheetLabel').textContent = 'Sheet ' + n;
+  render();
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('viewBtn').classList.toggle('active', mode === 'view');
+  document.getElementById('editBtn').classList.toggle('active', mode === 'edit');
+  document.getElementById('editBtn').classList.toggle('edit-active', mode === 'edit');
+  render();
+}
+
+function render() {
+  if (currentMode === 'view') renderView();
+  else renderEdit();
+}
+
+/* ── VIEW MODE ── */
+function renderView() {
+  const data = rockData[currentSheet];
+  const container = document.getElementById('sheetContent');
+  const dateEl = document.getElementById('updatedDate');
+
+  if (!data.blue.length && !data.yellow.length) {
+    container.innerHTML = '<p class="empty-msg">No rock data recorded yet.<br>Tap <strong>Edit</strong> to start entering data.</p>';
+    dateEl.textContent = 'No data yet';
+    return;
+  }
+
+  dateEl.textContent = data.updated ? 'Updated ' + data.updated : '';
+  let html = '';
+
+  function addColorGroup(label, colorClass, rocks) {
+    html += '<div class="color-header ' + colorClass + '">' + label + ' Rocks</div>';
+    [{label:'Lead',nums:[1,2]},{label:'Second',nums:[3,4]},{label:'Vice',nums:[5,6]},{label:'Skip',nums:[7,8]}].forEach(pos => {
+      html += '<div class="position-label">' + pos.label + '</div>';
+      pos.nums.forEach(n => {
+        const rock = rocks.find(r => r.num === n) || {num:n,speed:'',curl:'',notes:''};
+        html += viewRock(rock, colorClass);
+      });
+    });
+  }
+
+  function viewRock(rock, cc) {
+    let s = '<div class="rock-card"><div class="rock-top">';
+    s += '<div class="rock-num ' + cc + '">' + rock.num + '</div>';
+    s += '<div class="rock-traits">';
+    if (rock.speed) {
+      s += '<span class="trait ' + (rock.speed.toLowerCase().includes('fast')?'fast':'slow') + '">' + esc(rock.speed) + '</span>';
+    }
+    if (rock.curl) {
+      s += '<span class="trait ' + (rock.curl.toLowerCase().includes('straight')?'straight':'cutter') + '">' + esc(rock.curl) + '</span>';
+    }
+    if (!rock.speed && !rock.curl) {
+      s += '<span style="font-size:18px;color:var(--text-muted);font-style:italic;">No data</span>';
+    }
+    s += '</div></div>';
+    if (rock.notes) s += '<div class="rock-notes">' + esc(rock.notes) + '</div>';
+    s += '</div>';
+    return s;
+  }
+
+  addColorGroup('Blue','blue',data.blue);
+  html += '<div class="spacer"></div>';
+  addColorGroup('Yellow','yellow',data.yellow);
+
+  if (data.pairs || data.skipRocks || data.notes) {
+    html += '<div class="spacer"></div><div class="notes-section"><h3>Team Notes</h3><ul>';
+    if (data.pairs) html += '<li><strong>Matched pairs:</strong> ' + esc(data.pairs) + '</li>';
+    if (data.skipRocks) html += '<li><strong>Skip should throw:</strong> ' + esc(data.skipRocks) + '</li>';
+    if (data.notes) html += '<li>' + esc(data.notes) + '</li>';
+    html += '</ul></div>';
+  }
+
+  container.innerHTML = html;
+}
+
+/* ── EDIT MODE ── */
+function renderEdit() {
+  const data = rockData[currentSheet];
+  const container = document.getElementById('sheetContent');
+  document.getElementById('updatedDate').textContent = data.updated ? 'Updated ' + data.updated : 'Editing...';
+
+  let html = '';
+
+  function rockVal(color, num, field) {
+    const rocks = color === 'blue' ? data.blue : data.yellow;
+    const r = rocks.find(r => r.num === num);
+    return r ? (r[field] || '') : '';
+  }
+
+  function addEditGroup(label, colorClass) {
+    html += '<div class="color-header ' + colorClass + '">' + label + ' Rocks</div>';
+    [{label:'Lead',nums:[1,2]},{label:'Second',nums:[3,4]},{label:'Vice',nums:[5,6]},{label:'Skip',nums:[7,8]}].forEach(pos => {
+      html += '<div class="position-label">' + pos.label + '</div>';
+      pos.nums.forEach(n => { html += editRock(n, colorClass); });
+    });
+  }
+
+  function editRock(num, cc) {
+    const sv = esc(rockVal(cc,num,'speed'));
+    const cv = esc(rockVal(cc,num,'curl'));
+    const nv = esc(rockVal(cc,num,'notes'));
+    let s = '<div class="rock-edit-card"><div class="rock-edit-top">';
+    s += '<div class="rock-num ' + cc + '">' + num + '</div>';
+    s += '<div class="rock-edit-fields">';
+    s += '<div class="field-row">';
+    s += '<div class="field-group"><div class="field-label">Speed</div>';
+    s += '<input class="field-input" data-color="'+cc+'" data-num="'+num+'" data-field="speed" placeholder="e.g. Fast 2ft" value="'+sv+'"></div>';
+    s += '<div class="field-group"><div class="field-label">Curl</div>';
+    s += '<input class="field-input" data-color="'+cc+'" data-num="'+num+'" data-field="curl" placeholder="e.g. Cutter 3in" value="'+cv+'"></div>';
+    s += '</div>';
+    s += '<div class="field-group"><div class="field-label">Notes</div>';
+    s += '<input class="field-input" data-color="'+cc+'" data-num="'+num+'" data-field="notes" placeholder="Any observations" value="'+nv+'"></div>';
+    s += '</div></div></div>';
+    return s;
+  }
+
+  addEditGroup('Blue','blue');
+  html += '<div class="spacer"></div>';
+  addEditGroup('Yellow','yellow');
+
+  html += '<div class="spacer"></div>';
+  html += '<div class="notes-edit-section"><h3>Team Notes</h3>';
+  html += '<div class="field-group"><div class="field-label">Matched Pairs</div>';
+  html += '<input class="field-input" id="editPairs" placeholder="e.g. Blue 3 &amp; 4 well matched" value="'+esc(data.pairs)+'"></div>';
+  html += '<div class="field-group"><div class="field-label">Skip Should Throw</div>';
+  html += '<input class="field-input" id="editSkipRocks" placeholder="e.g. 5 &amp; 6 (if not 7 &amp; 8)" value="'+esc(data.skipRocks)+'"></div>';
+  html += '<div class="field-group"><div class="field-label">General Notes</div>';
+  html += '<input class="field-input" id="editNotes" placeholder="Other observations" value="'+esc(data.notes)+'"></div>';
+  html += '</div>';
+
+  html += '<div class="save-bar">';
+  html += '<button class="save-btn" id="saveBtn" onclick="saveSheet()">Save Sheet ' + currentSheet + '</button>';
+  html += '<button class="clear-btn" onclick="clearSheet()">Clear This Sheet</button>';
+  html += '</div>';
+
+  container.innerHTML = html;
+}
+
+function saveSheet() {
+  const data = rockData[currentSheet];
+  const blueRocks = [];
+  const yellowRocks = [];
+
+  document.querySelectorAll('.field-input[data-color]').forEach(inp => {
+    const color = inp.dataset.color;
+    const num = parseInt(inp.dataset.num);
+    const field = inp.dataset.field;
+    const val = inp.value.trim();
+    const arr = color === 'blue' ? blueRocks : yellowRocks;
+    let rock = arr.find(r => r.num === num);
+    if (!rock) { rock = {num:num,speed:'',curl:'',notes:''}; arr.push(rock); }
+    rock[field] = val;
+  });
+
+  data.blue = blueRocks.filter(r => r.speed || r.curl || r.notes);
+  data.yellow = yellowRocks.filter(r => r.speed || r.curl || r.notes);
+  data.pairs = document.getElementById('editPairs').value.trim();
+  data.skipRocks = document.getElementById('editSkipRocks').value.trim();
+  data.notes = document.getElementById('editNotes').value.trim();
+
+  const now = new Date();
+  const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  data.updated = mo[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+
+  rockData[currentSheet] = data;
+  saveDataToStorage(rockData);
+  updateSheetBtnIndicators();
+
+  const btn = document.getElementById('saveBtn');
+  btn.textContent = 'Saved \u2713';
+  btn.classList.add('saved');
+  setTimeout(() => {
+    btn.textContent = 'Save Sheet ' + currentSheet;
+    btn.classList.remove('saved');
+  }, 1500);
+}
+
+function clearSheet() {
+  if (confirm('Clear all data for Sheet ' + currentSheet + '?')) {
+    rockData[currentSheet] = emptySheet();
+    saveDataToStorage(rockData);
+    updateSheetBtnIndicators();
+    renderEdit();
+  }
+}
+
+function exportData() {
+  const json = JSON.stringify(rockData, null, 2);
+  const blob = new Blob([json], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'hpc_rockdata.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  const btn = document.getElementById('exportBtn');
+  btn.textContent = 'Exported \u2713';
+  btn.classList.add('done');
+  setTimeout(() => { btn.textContent = 'Export All Data'; btn.classList.remove('done'); }, 2000);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      // Validate structure: should have keys 1-5
+      for (let i = 1; i <= 5; i++) {
+        if (!imported[i]) imported[i] = emptySheet();
+      }
+      rockData = imported;
+      saveDataToStorage(rockData);
+      updateSheetBtnIndicators();
+      render();
+      const btn = document.getElementById('importBtn');
+      btn.textContent = 'Imported \u2713';
+      btn.classList.add('done');
+      setTimeout(() => { btn.textContent = 'Import Data'; btn.classList.remove('done'); }, 2000);
+    } catch(err) {
+      alert('Could not read that file. Make sure it\u0027s an exported rock data JSON file.');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function esc(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Install Banner ── */
+function dismissBanner() {
+  document.getElementById('installBanner').style.display = 'none';
+  localStorage.setItem('hpc_banner_dismissed', '1');
+}
+
+(function checkInstallBanner() {
+  // Show banner only in iOS/iPadOS Safari when NOT already installed as web app
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isStandalone = window.navigator.standalone === true;
+  const dismissed = localStorage.getItem('hpc_banner_dismissed');
+  if (isIOS && !isStandalone && !dismissed) {
+    document.getElementById('installBanner').style.display = 'block';
+  }
+})();
+
+showSheet(1);
+</script>
+</body>
+</html>
